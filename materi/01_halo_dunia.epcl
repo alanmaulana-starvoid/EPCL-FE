@@ -1,0 +1,10 @@
+# Materi 1: Input, Output, dan Variabel Dasar
+/info-epcl
+cetak_baris="="
+
+nama = tanya="Siapa nama lengkapmu? "
+kelas = tanya="Kamu dari kelas berapa? "
+
+cetak_kosong()
+cetak(f"Halo {nama} dari kelas {kelas}!")
+cetak="Selamat belajar pemrograman menggunakan EPCL-FE v1.0."
