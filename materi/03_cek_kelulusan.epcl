@@ -1,0 +1,12 @@
+# Materi 3: Logika Percabangan (jika / atau_jika / selain_itu)
+cetak("=== CEK STATUS KELULUSAN UJIAN ===")
+nama = tanya="Nama siswa          : "
+nilai = tanya_angka="Nilai ujian (0-100) : "
+
+jika nilai >= 75 dan nilai <= 100:
+    cetak_sukses(f"Selamat {nama}, kamu dinyatakan LULUS!")
+atau_jika nilai >= 0 dan nilai < 75:
+    cetak_gagal(f"Maaf {nama}, nilai {nilai} belum memenuhi KKM (75).")
+selain_itu:
+    cetak="Input tidak valid! Masukkan angka antara 0 sampai 100."
+    
