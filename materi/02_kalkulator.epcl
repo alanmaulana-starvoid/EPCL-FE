@@ -1,0 +1,15 @@
+# Materi 2: Operasi Matematika & Pembulatan
+cetak("=== KALKULATOR SEDERHANA EPCL-FE ===")
+a = tanya_angka="Masukkan angka pertama : "
+b = tanya_angka="Masukkan angka kedua   : "
+
+cetak_baris="-"
+cetak(f"Hasil Penjumlahan : {a + b}")
+cetak(f"Hasil Pengurangan : {a - b}")
+cetak(f"Hasil Perkalian   : {a * b}")
+
+jika b != 0:
+    hasil_bagi = bulatkan(a / b, 2)
+    cetak(f"Hasil Pembagian   : {hasil_bagi}")
+selain_itu:
+    cetak_gagal="Tidak bisa membagi dengan angka 0!"
