@@ -20,14 +20,15 @@ VERSION = "1.0.0"
 # Format: "perintah_epcl": ("target_python", "kategori", "deskripsi", is_callable)
 # ==============================================================================
 COMMANDS = {
-    # 1. Perintah Sistem & Bantuan (6)
+    # 1. Perintah Sistem & Bantuan (7)
     "/bantu-listkode": ("_epcl_bantu_listkode()", "Sistem", "Menampilkan seluruh daftar code command EPCL-FE", False),
     "/info-epcl": ("_epcl_info()", "Sistem", "Menampilkan informasi versi EPCL-FE", False),
     "/bersihkan": ("_epcl_bersihkan()", "Sistem", "Membersihkan layar terminal", False),
     "/keluar": ("sys.exit(0)", "Sistem", "Menghentikan dan keluar dari program", False),
     "/waktu-sekarang": ("_epcl_waktu_sekarang()", "Sistem", "Menampilkan tanggal dan jam saat ini", False),
     "/sistem-os": ("_epcl_sistem_os()", "Sistem", "Menampilkan informasi sistem operasi", False),
-
+    "/tempel": ("_epcl_info_tempel()", "Sistem", "Masuk mode tempel multi-baris di REPL (akhiri dengan /selesai)", False),
+    
     # 2. Input & Output Dasar (8)
     "cetak": ("print", "Input/Output", "Menampilkan teks atau nilai ke layar", True),
     "tanya": ("input", "Input/Output", "Meminta masukan teks dari pengguna", True),
@@ -308,18 +309,89 @@ def run_file(filepath):
     py_code = transpile_source(epcl_code)
     exec(compile(py_code, filepath, "exec"), build_env())
 
+BLOCK_STARTERS = (
+    "jika ", "jika(", "atau_jika ", "atau_jika(", "selain_itu:",
+    "ulangi_selama ", "ulangi_selama(", "untuk_setiap ",
+    "buat_fungsi ", "buat_kelas ", "coba:", "jika_error", "akhirnya:"
+)
+
+def _epcl_info_tempel():
+    print("Gunakan /tempel di mode interaktif (epcl>) untuk menempel banyak baris kode.")
+
+def _format_epcl_error(err):
+    msg = str(err)
+    if isinstance(err, NameError):
+        return f"[Kesalahan Nama] Variabel atau perintah tidak dikenal ({msg}). Pastikan sudah didefinisikan sebelumnya."
+    if isinstance(err, SyntaxError):
+        if "unterminated string" in msg or "intended to be part of the string" in msg:
+            return "[Kesalahan Teks] Tanda kutip tidak seimbang. Gunakan tanda kutip tunggal '...' jika di dalam teks ada tanda \"."
+        return f"[Kesalahan Sintaks] Penulisan kode tidak sesuai aturan ({msg}). Cek tanda kurung, koma, atau titik dua (:)."
+    if isinstance(err, ZeroDivisionError):
+        return "[Kesalahan Matematika] Tidak bisa membagi angka dengan nol (0)."
+    if isinstance(err, ValueError):
+        return f"[Kesalahan Nilai] Format nilai tidak sesuai ({msg})."
+    return f"[Kesalahan EPCL-FE] {msg}"
+
+def _exec_repl_code(py_code, env):
+    lines = py_code.strip().splitlines()
+    if len(lines) == 1:
+        try:
+            compiled = compile(lines[0], "<epcl-repl>", "eval")
+            result = eval(compiled, env)
+            if result is not None:
+                print(repr(result) if isinstance(result, str) else result)
+            return
+        except SyntaxError:
+            pass
+    exec(compile(py_code, "<epcl-repl>", "exec"), env)
+
 def run_repl():
-    print(f"EPCL-FE v{VERSION} Interactive Mode — Ketik /bantu-listkode atau /keluar")
+    print(f"EPCL-FE v{VERSION} Interactive Mode — Ketik /bantu-listkode, /tempel, atau /keluar")
     env = build_env()
     buffer = []
+    paste_mode = False
+
     while True:
         try:
-            prompt = "...  " if buffer else "epcl> "
+            if paste_mode:
+                prompt = "tempel> "
+            elif buffer:
+                prompt = "...     "
+            else:
+                prompt = "epcl> "
+
             line = input(prompt)
-            if not buffer and not line.strip():
+            stripped = line.strip()
+
+            # Mode /tempel untuk menempel kode multi-baris yang memiliki baris kosong
+            if stripped == "/tempel" and not paste_mode and not buffer:
+                paste_mode = True
+                buffer.clear()
+                print("Mode tempel aktif. Tempel kodemu, lalu ketik /selesai untuk menjalankan (atau /batal).")
                 continue
+
+            if paste_mode:
+                if stripped == "/batal":
+                    paste_mode = False
+                    buffer.clear()
+                    print("Mode tempel dibatalkan.")
+                elif stripped == "/selesai":
+                    paste_mode = False
+                    source = "\n".join(buffer)
+                    buffer.clear()
+                    if source.strip():
+                        py_code = transpile_source(source)
+                        exec(compile(py_code, "<epcl-repl>", "exec"), env)
+                else:
+                    buffer.append(line)
+                continue
+
+            if not buffer and not stripped:
+                continue
+
+            # Tangani blok multi-baris (jika, untuk_setiap, buat_fungsi, dll.)
             if buffer:
-                if line.strip() == "":
+                if stripped == "":
                     source = "\n".join(buffer)
                     buffer.clear()
                     py_code = transpile_source(source)
@@ -327,17 +399,27 @@ def run_repl():
                 else:
                     buffer.append(line)
                 continue
-            if line.rstrip().endswith(":"):
-                buffer.append(line)
-                continue
+
+            # Cegah kesalahan titik dua (:) di akhir perintah biasa
+            if stripped.endswith(":"):
+                if any(stripped.startswith(k) for k in BLOCK_STARTERS):
+                    buffer.append(line)
+                    continue
+                else:
+                    print("[Kesalahan Sintaks] Tanda ':' di akhir baris hanya dipakai untuk blok seperti 'jika' atau 'untuk_setiap'. Hapus tanda ':' tersebut.")
+                    continue
+
             py_code = transpile_source(line)
-            exec(compile(py_code, "<epcl-repl>", "exec"), env)
+            _exec_repl_code(py_code, env)
+
         except KeyboardInterrupt:
             buffer.clear()
+            paste_mode = False
             print("\nDibatalkan. Ketik /keluar untuk keluar dari EPCL-FE.")
         except Exception as e:
             buffer.clear()
-            print(f"[Kesalahan EPCL-FE] {e}")
+            paste_mode = False
+            print(_format_epcl_error(e))
                         
 if __name__ == "__main__":
     if len(sys.argv) > 1:
