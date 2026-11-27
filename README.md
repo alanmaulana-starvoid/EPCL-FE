@@ -31,7 +31,7 @@
 ### 3. Smartphone Android (Termux / Pydroid 3)
 Jalankan perintah berikut di terminal Termux:
 ```bash
-git clone [https://github.com/alanmaulana-starvoid/EPCL-FE.git](https://github.com/alanmaulana-starvoid/EPCL-FE.git)
+git clone https://github.com/alanmaulana-starvoid/EPCL-FE/materi/
 cd EPCL-FE
 bash setup.sh
 ```
