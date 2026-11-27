@@ -241,6 +241,22 @@ TOKEN_SPLIT_RE = re.compile(r'("""[\s\S]*?"""|\'\'\'[\s\S]*?\'\'\'|"(?:\\.|[^"\\
 ASSIGN_CALL_RE = re.compile(r'(?<![=!<>])\b([a-zA-Z_][a-zA-Z0-9_]*)\s*=(?!=)\s*(.+)$')
 WORD_RE = re.compile(r'\b([a-zA-Z_][a-zA-Z0-9_]*)\b')
 
+def _protect_strings(line):
+    literals = []
+    def _repl(match):
+        token = match.group(0)
+        if token.startswith("#"):
+            return token
+        idx = len(literals)
+        literals.append(token)
+        return f"__EPCL_STR_{idx}__"
+    return TOKEN_SPLIT_RE.sub(_repl, line), literals
+
+def _restore_strings(line, literals):
+    for idx, lit in enumerate(literals):
+        line = line.replace(f"__EPCL_STR_{idx}__", lit)
+    return line
+
 def _transform_shorthand_equals(code_chunk):
     """Mengubah sintaks perintah=argumen menjadi perintah(argumen) di luar string."""
     match = ASSIGN_CALL_RE.search(code_chunk)
@@ -263,16 +279,15 @@ def transpile_line(line):
             sisa = stripped[len(scmd):]
             return f"{indent}{py_call}{sisa}"
 
-    # Pisahkan kode dari string literal & komentar agar isi teks aman
-    parts = TOKEN_SPLIT_RE.split(line)
-    for i in range(0, len(parts), 2):
-        chunk = parts[i]
-        if not chunk:
-            continue
-        chunk = _transform_shorthand_equals(chunk)
-        chunk = WORD_RE.sub(lambda m: WORD_COMMANDS.get(m.group(1), m.group(1)), chunk)
-        parts[i] = chunk
-    return "".join(parts)
+    # Amankan teks dalam tanda kutip agar sintaks perintah="teks" tidak terpecah
+    protected, literals = _protect_strings(line)
+    code_part, sep, comment_part = protected.partition("#")
+
+    code_part = _transform_shorthand_equals(code_part)
+    code_part = WORD_RE.sub(lambda m: WORD_COMMANDS.get(m.group(1), m.group(1)), code_part)
+
+    combined = code_part + sep + comment_part
+    return _restore_strings(combined, literals)
 
 def transpile_source(source):
     return "\n".join(transpile_line(line) for line in source.splitlines())
@@ -296,19 +311,34 @@ def run_file(filepath):
 def run_repl():
     print(f"EPCL-FE v{VERSION} Interactive Mode — Ketik /bantu-listkode atau /keluar")
     env = build_env()
+    buffer = []
     while True:
         try:
-            line = input("epcl> ")
-            if not line.strip():
+            prompt = "...  " if buffer else "epcl> "
+            line = input(prompt)
+            if not buffer and not line.strip():
+                continue
+            if buffer:
+                if line.strip() == "":
+                    source = "\n".join(buffer)
+                    buffer.clear()
+                    py_code = transpile_source(source)
+                    exec(compile(py_code, "<epcl-repl>", "exec"), env)
+                else:
+                    buffer.append(line)
+                continue
+            if line.rstrip().endswith(":"):
+                buffer.append(line)
                 continue
             py_code = transpile_source(line)
             exec(compile(py_code, "<epcl-repl>", "exec"), env)
         except KeyboardInterrupt:
-            print("\nKeluar dari EPCL-FE.")
-            break
+            buffer.clear()
+            print("\nDibatalkan. Ketik /keluar untuk keluar dari EPCL-FE.")
         except Exception as e:
+            buffer.clear()
             print(f"[Kesalahan EPCL-FE] {e}")
-
+                        
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         run_file(sys.argv[1])
