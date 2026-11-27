@@ -1,3 +1,5 @@
+# INI BETA VERSION, MUNGKIN ADA BEBERAPA ERROR DAN BUG!
+
 # EPCL-FE v1.0 (Easy Programming Code Language - For Education)
 
 **EPCL-FE** adalah bahasa pemrograman edukasi berbasis Python yang dirancang khusus untuk pelajar sekolah menengah agar dapat memahami logika pemrograman menggunakan kosakata bahasa Indonesia sehari-hari.
