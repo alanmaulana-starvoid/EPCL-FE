@@ -1,0 +1,19 @@
+# Materi 4: Perulangan & Penanganan Error (Game Tebak Angka)
+cetak("=== GAME TEBAK ANGKA (1 - 10) ===")
+rahasia = angka_acak(1, 10)
+percobaan = 0
+
+ulangi_selama benar:
+    coba:
+        tebakan = tanya_angka="Tebak angka pilihan komputer: "
+        percobaan = percobaan + 1
+
+        jika tebakan == rahasia:
+            cetak_sukses(f"Tepat sekali! Angkanya {rahasia}. Kamu menebak {percobaan} kali.")
+            berhenti
+        atau_jika tebakan < rahasia:
+            cetak="Terlalu kecil, coba angka yang lebih besar!"
+        selain_itu:
+            cetak="Terlalu besar, coba angka yang lebih kecil!"
+    jika_error:
+        cetak_gagal="Harap masukkan angka bulat saja!"
