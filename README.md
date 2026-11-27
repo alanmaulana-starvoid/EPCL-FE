@@ -5,7 +5,7 @@
 ---
 
 ## Fitur Utama
-* **106 Perintah Bahasa Indonesia:** Mencakup input/output, percabangan, perulangan, matematika, pengolahan teks, manipulasi daftar, hingga manajemen file.
+* **107 Perintah Bahasa Indonesia:** Mencakup input/output, percabangan, perulangan, matematika, pengolahan teks, manipulasi daftar, hingga manajemen file.
 * **Sintaks Ganda (Dual-Syntax):** Mendukung gaya pemanggilan fungsi standar `cetak("Halo")` maupun gaya pintasan sederhana `cetak="Halo"`.
 * **Mode Interaktif (REPL) & Mode File:** Dapat dijalankan baris demi baris untuk demonstrasi langsung di kelas maupun disimpan sebagai file tugas berekstensi `.epcl`.
 * **Ringan & Tanpa Instalasi Eksternal:** Hanya membutuhkan Python 3 bawaan tanpa library tambahan.
